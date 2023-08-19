@@ -6,6 +6,8 @@ from os import close
 from playwright.sync_api import sync_playwright
 
 
+DEBUG = True
+
 
 if not os.path.exists("chapters"):
         os.makedirs("chapters") 
@@ -15,11 +17,11 @@ def showTime():
     return str("["+datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')+" UTC]")       
         
         
-# To make sure the entire chapter is loaded, wait for page to load at the top of page and press page down multiple times to get to the bottom.
-def press_page_down(page, how_many_times: int = 80 , debug: bool = False):
+# Wait for page to load and press page down multiple times
+def press_page_down(page, how_many_times: int = 50 , debug: bool = False):
     for scroll_loop in range(how_many_times):
         page.keyboard.press("PageDown")
-        time.sleep(0.2)
+        time.sleep(0.3)
         try:
             page.wait_for_load_state(state='load', timeout=5000)
         except:
@@ -27,7 +29,18 @@ def press_page_down(page, how_many_times: int = 80 , debug: bool = False):
         if debug:
             print(f"{showTime()} scroll_loop: {scroll_loop}")
 
-        
+
+# To make sure the entire chapter is loaded, scroll to the end of it.   
+def scroll_to_end_of_story(page):
+    chapter_progress = "placeholder"
+    while(True):
+        press_page_down(page=page, how_many_times=2, debug=DEBUG)
+        chapter_progress = page.query_selector("#progresstooltip").get_attribute("data-original-title")
+        if DEBUG:        
+            print(chapter_progress)
+        if (chapter_progress == "a few seconds left") or (chapter_progress is None):
+            break
+
         
 # Remove symbols that are illegal for directory name
 def remove_illegal_symbols(chapter_title):
@@ -48,7 +61,7 @@ def remove_weird_symbols(text_paragraph):
 
 def run(playwright):
     browser = playwright.chromium.launch(headless=False)
-    context = browser.new_context()  
+    context = browser.new_context(locale="en-US")  
     page = context.new_page()
     
     # Read novels to be scraped from file
@@ -89,13 +102,13 @@ def run(playwright):
                 text_paragraph = ""
                 
                 page.goto(chapter_link)
-                
-                # Gradually scroll down to load all content
-                press_page_down(page=page)
-                
+
                 # Get title
                 chapter_title = page.query_selector(".h2").inner_text()
                 #print(chapter_title)
+                
+                # Scroll to end of chapter to make sure it is fully loaded
+                scroll_to_end_of_story(page=page)
                 
                 # Remove and/or replace illegal characters for directory name from chapter title
                 chapter_title = remove_illegal_symbols(chapter_title)
