@@ -6,7 +6,7 @@ from os import close
 from playwright.sync_api import sync_playwright
 
 
-DEBUG = True
+DEBUG = False
 
 
 if not os.path.exists("chapters"):
@@ -55,7 +55,7 @@ def remove_weird_symbols(text_paragraph):
     # Replace the number of comments symbol that gets scraped 
     text_paragraph = re.sub(r"\b[1-9][0-9]?$", '', text_paragraph, flags=re.MULTILINE) 
     # Replace other weird symbols
-    text_paragraph = text_paragraph.replace('—', '')
+    text_paragraph = text_paragraph.replace('—', '').replace('_', '')
     return text_paragraph
     
 
@@ -75,6 +75,7 @@ def run(playwright):
             
             # Get story title
             story_title =  page.query_selector(".story-info__title").inner_text().replace("Iseka...", "Isekai'd")
+            story_title = remove_illegal_symbols(story_title)
             print(f"{showTime()} {story_title}")
             
             # Get story author
